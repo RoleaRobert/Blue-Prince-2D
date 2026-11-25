@@ -246,7 +246,7 @@ private:
 
     void memoryAllocation();
     void memoryDeallocation();
-    void initializeDeck();
+    void initializeDeck(const std::string& configPath);
     void setupStartAndFinish();
 
     bool isInBounds(int line, int column) const;
@@ -256,7 +256,7 @@ private:
     bool move(Direction direction);
 
 public:
-    Mansion();
+    explicit Mansion(const std::string& configPath = "assets/rooms.txt");
 
     Mansion(const Mansion& other);
     Mansion& operator=(Mansion other);
@@ -290,10 +290,10 @@ void Mansion::memoryDeallocation() {
     }
 }
 
-void Mansion::initializeDeck() {
-    std::ifstream file("assets/rooms.txt");
+void Mansion::initializeDeck(const std::string& configPath) {
+    std::ifstream file(configPath);
     if (!file.is_open()) {
-        throw std::runtime_error("Could not open rooms.txt");
+        throw std::runtime_error("Could not open" + configPath);
     }
 
     roomDeck.clear();
@@ -368,7 +368,7 @@ void Mansion::initializeDeck() {
     }
 
     if (!hasSize || !hasPlayer || !hasStart || !hasFinish || roomDeck.empty()) {
-        throw std::runtime_error("File incomplete");
+        throw std::runtime_error("File" + configPath +  "incomplete");
     }
 }
 
@@ -387,14 +387,14 @@ void Mansion::setupStartAndFinish() {
     placed[endLine][endColumn] = true;
 }
 
-Mansion::Mansion()
+Mansion::Mansion(const std::string& configPath)
     :lines(0),
     columns(0),
     grid(nullptr),
     placed(nullptr),
     player(),
     rng(std::random_device{}()) {
-    initializeDeck();
+    initializeDeck(configPath);
     memoryAllocation();
     setupStartAndFinish();
 }
@@ -615,7 +615,7 @@ std::ostream& operator<< (std::ostream& out, const Mansion& mansion) {
 
 int main() {
 
-    Mansion mansion;
+    Mansion mansion("assets/rooms.txt");
     mansion.run();
 
     return 0;
