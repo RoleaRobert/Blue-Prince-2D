@@ -6,6 +6,10 @@
 #include<string>
 #include<random>
 #include<utility>
+#include<cstddef>
+#include<fstream>
+#include<sstream>
+#include<stdexcept>
 
 //---Resources---
 
@@ -30,7 +34,6 @@ public:
     bool useDiamonds(int amount);
     void gainDiamonds(int amount);
 
-    bool useKeys(int amount = 1);
     void gainKeys(int amount);
 
     void gainGold(int amount);
@@ -63,18 +66,11 @@ bool Resources::useDiamonds(int amount) {
 }
 void Resources::gainDiamonds(int amount) { diamonds += amount; }
 
-bool Resources::useKeys(int amount) {
-    if (keys <= amount) {
-        return false;
-    }
-    keys -= amount;
-    return true;
-}
 void Resources::gainKeys(int amount) { keys += amount; }
 void Resources::gainGold(int amount) { gold += amount; }
 
 std::ostream &operator<<(std::ostream &out, const Resources &res) {
-    out << "Steps "<< res.steps << " Keys " << res.keys << " Gold " << res.gold << " Diamonds " << res.diamonds;
+    out << "Steps "<< res.getSteps() << " Keys " << res.getKeys() << " Gold " << res.getGold() << " Diamonds " << res.getDiamonds();
     return out;
 }
 
@@ -104,14 +100,14 @@ private:
     bool antechamber;
 
 public:
-    Room(std::string name = "Empty",
-        char symbol = ' ',
-        int diamondPrice = 0,
-        std::array<bool, 4> doors = {false, false, false, false},
-        int bonusDiamonds = 0,
-        int bonusSteps = 0,
-        int bonusKeys = 0,
-        bool antechamber = false);
+    explicit Room(std::string name = "Empty",
+            char symbol = ' ',
+            int diamondPrice = 0,
+            std::array<bool, 4> doors = {false, false, false, false},
+            int bonusDiamonds = 0,
+            int bonusSteps = 0,
+            int bonusKeys = 0,
+            bool antechamber = false);
 
     void rotate90();
     bool hasDoor(Direction dir) const;
@@ -155,7 +151,7 @@ void Room::rotate90() {
 }
 
 bool Room::hasDoor(Direction dir) const {
-    return doors[static_cast<int>(dir)];
+    return doors[static_cast<std::size_t>(dir)];
 }
 
 const std::string& Room::getName() const {return name;}
@@ -175,7 +171,7 @@ void Room::applyBonus(Resources& res) {
 }
 
 std::ostream& operator << (std::ostream& out, const Room& room) {
-    out << room.name << "(" << room.symbol << ")"
+    out << room.getName() << "(" << room.symbol << ")"
         << "Price: " << room.diamondPrice << "Diamonds"
         <<  "Doors: "
         << (room.hasDoor(Direction::North) ? 'N' : '-')
@@ -185,6 +181,9 @@ std::ostream& operator << (std::ostream& out, const Room& room) {
 
     if (room.bonusSteps > 0 || room.bonusDiamonds > 0 || room.bonusKeys > 0) {
         out << "Bonus: +  " << room.bonusSteps << " Steps + " << room.bonusDiamonds << " Diamonds + " << room.bonusKeys << " Keys";
+    }
+    if (room.isVisited()) {
+        out << "Visited";
     }
 
     return out;
@@ -200,7 +199,7 @@ private:
     Resources res;
 
 public:
-    Character(std::string name = "George", int line = 6, int column = 2);
+    explicit Character(std::string name = "George", int line = 6, int column = 2);
 
     int getLine() const;
     int getColumn() const;
@@ -227,7 +226,7 @@ void Character::setPosition(int newLine, int newColumn) {
 }
 
 std::ostream& operator<<(std::ostream& out, const Character& mc) {
-    out << "Character: " << mc.name << " at position " << mc.line << ", " << mc.column << std::endl << mc.res;
+    out << "Character: " << mc.name << " at position " << mc.line << ", " << mc.column << std::endl << mc.getResource();
     return out;
 }
 
@@ -240,6 +239,8 @@ private:
     Room** grid;
     bool** placed;
     Character player;
+    Room startRoom;
+    Room finishRoom;
     std::vector<Room> roomDeck;
     std::mt19937 rng;
 
@@ -255,7 +256,7 @@ private:
     bool move(Direction direction);
 
 public:
-    Mansion(int lines = 7, int columns = 5);
+    explicit Mansion(int lines = 7, int columns = 5);
 
     Mansion(const Mansion& other);
     Mansion& operator=(Mansion other);
@@ -268,11 +269,11 @@ public:
 };
 
 void Mansion::memoryAllocation() {
-    grid = new Room*[lines];
-    placed = new bool*[lines];
+    grid = new Room*[static_cast<std::size_t>(lines)];
+    placed = new bool*[static_cast<std::size_t>(lines)];
     for (int i = 0; i < lines; ++i) {
-        grid[i] = new Room[columns];
-        placed[i] = new bool[columns]{false};
+        grid[i] = new Room[static_cast<std::size_t>(columns)];
+        placed[i] = new bool[static_cast<std::size_t>(columns)]{false};
     }
 }
 
@@ -290,32 +291,67 @@ void Mansion::memoryDeallocation() {
 }
 
 void Mansion::initializeDeck() {
-    roomDeck = {
-        Room("Long Corridor",   'C', 0, {true,  false, true,  false}, 0, 0, 0),
-        Room("T-Intersection",  'T', 1, {true,  true,  true,  false}, 0, 0, 0),
-        Room("Central Hall",    'H', 2, {true,  true,  true,  true }, 2, 0, 0),
-        Room("Corner Turn",     'L', 0, {true,  true,  false, false}, 0, 0, 0),
-        Room("Dining Room",     'S', 1, {false, true,  true,  true }, 8, 0, 0),
-        Room("Inner Garden",    'G', 1, {true,  false, true,  false}, 3, 2, 0),
-        Room("Key Room",        'K', 1, {false, false, true,  true }, 0, 0, 2),
-        Room("Pantry",          'P', 0, {false, false, true,  false}, 5, 1, 0),
-        Room("Study",           'B', 2, {true,  true,  true,  false}, 0, 2, 1),
-        Room("Library",         'M', 1, {true,  false, true,  true }, 4, 1, 0)
-    };
+    std::ifstream file("assets/rooms.txt");
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open rooms.txt");
+    }
+
+    roomDeck.clear();
+    bool hasStart = false;
+    bool hasFinish = false;
+
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+
+        std::istringstream iss(line);
+        std::string type;
+        char symbol = ' ';
+        int price = 0;
+        int dirN = 0, dirE = 0, dirS = 0, dirW = 0;
+        int bonusDiamonds = 0, bonusSteps = 0, bonusKeys = 0;
+
+        if (!(iss >> type >> symbol >> price >> dirN >> dirE >> dirS >> dirW >> bonusDiamonds >> bonusSteps >> bonusKeys)) {
+            continue;
+        }
+
+        std::string roomName;
+        std::getline(iss >> std::ws, roomName);
+        if (roomName.empty()) {
+            continue;
+        }
+
+        const std::array<bool, 4> doors = {dirN != 0, dirE != 0, dirS != 0, dirW != 0};
+        if (type == "START") {
+            startRoom = Room(roomName, symbol, price, doors, bonusDiamonds, bonusSteps, bonusKeys, false);
+            hasStart = true;
+        }else if (type == "FINISH") {
+            finishRoom = Room(roomName, symbol, price, doors, bonusDiamonds, bonusSteps, bonusKeys, true);
+            hasFinish = true;
+        }else if (type == "DECK") {
+            roomDeck.emplace_back(roomName, symbol, price, doors, bonusDiamonds, bonusSteps, bonusKeys, false);
+        }
+    }
+
+    if (!hasStart || !hasFinish || roomDeck.empty()) {
+        throw std::runtime_error("File incomplete");
+    }
 }
 
 void Mansion::setupStartAndFinish() {
-    int startLine = lines - 1;
-    int startColumn = columns / 2;
+    const int startLine = lines - 1;
+    const int startColumn = columns / 2;
     player = Character("George", startLine, startColumn);
 
-    grid[startLine][startColumn] = Room("Entrance Hall", 'I', 0, {true, true, false, true});
+    grid[startLine][startColumn] = startRoom;
     grid[startLine][startColumn].applyBonus(player.getResource());
     placed[startLine][startColumn] = true;
 
     int endLine = 0;
     int endColumn = columns / 2;
-    grid[endLine][endColumn] = Room("Antechamber", 'A', 0, {false, true, true, true}, 0, 0, 0, true);
+    grid[endLine][endColumn] = finishRoom;
     placed[endLine][endColumn] = true;
 }
 
@@ -381,8 +417,8 @@ bool Mansion::canPlace(const Room& room, int line, int column, Direction moveDir
 std::vector<Room>Mansion::drawOptions(int count) {
     std::vector<Room> deckCopy = roomDeck;
     std::shuffle(deckCopy.begin(), deckCopy.end(), rng);
-    if (static_cast<int>(deckCopy.size()) > count) {
-        deckCopy.resize(count);
+    if (count > 0 && static_cast<std::size_t>(count) < deckCopy.size()) {
+        deckCopy.resize(static_cast<std::size_t>(count));
     }
     return deckCopy;
 }
@@ -409,7 +445,7 @@ bool Mansion::executeDraft(int targetLine, int targetColumn, Direction moveDir) 
             continue;
         }
         if (choice >= '1' && choice <= '3') {
-            size_t index = static_cast<size_t>(choice) - '1';
+            const std::size_t index = static_cast<std::size_t>(choice - '1');
             Room selectedRoom = options[index];
 
             if (!canPlace(selectedRoom, targetLine, targetColumn, moveDir)) {
@@ -436,10 +472,10 @@ bool Mansion::move(Direction dir) {
         std::cout << "Door is facing a wall! " << std::endl;
         return false;
     }
-    int dirLine[] = { -1, 0, 1, 0 };
-    int dirColumn[] = { 0, 1, 0, -1 };
-    int newLine = currentLine + dirLine[static_cast<int>(dir)];
-    int newColumn = currentColumn + dirColumn[static_cast<int>(dir)];
+    const int dirLine[] = { -1, 0, 1, 0 };
+    const int dirColumn[] = { 0, 1, 0, -1 };
+    const int newLine = currentLine + dirLine[static_cast<std::size_t>(dir)];
+    const int newColumn = currentColumn + dirColumn[static_cast<std::size_t>(dir)];
 
     if (!isInBounds(newLine, newColumn)) {
         std::cout << "You cannot exit the mansion! " << std::endl;
@@ -449,6 +485,7 @@ bool Mansion::move(Direction dir) {
         if (!executeDraft(newLine, newColumn, dir)) {
             return false;
         }
+        player.getResource().gainGold(1);
     } else if (!grid[newLine][newColumn].hasDoor(oppDirection(dir))) {
             std::cout << "The adjacent room has a wall on this side! " << std::endl;
             return false;
@@ -513,7 +550,7 @@ std::ostream& operator<< (std::ostream& out, const Mansion& mansion) {
     for (int i = 0; i < mansion.lines; ++i) {
         for (int j = 0; j < mansion.columns; ++j) {
             if (!mansion.placed[i][j]) {
-                out << " . ";
+                out << "  .  ";
             } else {
                 out << (mansion.grid[i][j].hasDoor(Direction::North) ? "+- -+" : "+---+");
             }
@@ -522,7 +559,7 @@ std::ostream& operator<< (std::ostream& out, const Mansion& mansion) {
 
         for (int j = 0; j < mansion.columns; ++j) {
             if (!mansion.placed[i][j]) {
-                std::cout << " . ";
+                std::cout << "  .  ";
             } else {
                 char left = mansion.grid[i][j].hasDoor(Direction::West) ? ' ' : '|';
                 char right = mansion.grid[i][j].hasDoor(Direction::East) ? ' ' : '|';
@@ -534,7 +571,7 @@ std::ostream& operator<< (std::ostream& out, const Mansion& mansion) {
 
         for (int j = 0; j < mansion.columns; ++j) {
             if (!mansion.placed[i][j]) {
-                out << " . ";
+                out << "  .  ";
             } else {
                 out << (mansion.grid[i][j].hasDoor(Direction::South) ? "+- -+" : "+---+");
             }

@@ -8,13 +8,13 @@
 The player ('@') starts in the Entrance Hall ('I') and must reach the Antechamber ('A') before running out of steps.
 Every time the player wishes to go down an unexplored path they will be presented with a selection of rooms to choose from in order to build their own path towards the end.
 
--**Exploration & Room selection**
+-**Exploration & Room selection:**
 Atempting to step in an unexplored cell will trigger a draft of 3 random rooms from the deck.
 
--**Alignment & Cost**
+-**Alignment & Cost:**
 Drafted rooms can be rotated 90 degrees to align doorways and to face the way the player wants them to. Certain rooms will cost diamonds.
 
--**Resources**
+-**Resources:**
 Every movement consumes '1 step'. Entering a newly placed room grants the player its one time bonuses(steps, diamonds and keys).
 
 ---

@@ -1,0 +1,13 @@
+# Format: Type Symbol Price N E S W bonusDiamonds bonusSteps bonusKeys  roomName
+START I 0 1 1 0 1 0 0 0 Entrance Hall
+FINISH A 0 0 1 1 1 0 0 0 Antechamber
+DECK C 0 1 0 1 0 0 0 0 Long Corridor
+DECK T 1 1 1 1 0 0 0 0 T-Intersection
+DECK H 2 1 1 1 1 2 0 0 Central Hall
+DECK L 0 1 1 0 0 0 0 0 Corner Turn
+DECK S 1 0 1 1 1 8 0 0 Dining Room
+DECK G 1 1 0 1 0 3 2 0 Inner Garden
+DECK K 1 0 0 1 1 0 0 2 Key Room
+DECK P 0 0 0 1 0 5 1 0 Pantry
+DECK B 2 1 1 1 0 0 2 1 Study
+DECK M 1 1 0 1 1 4 1 0 Library
