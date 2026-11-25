@@ -1,3 +1,9 @@
+# Grid size: SIZE lines columns
+SIZE 7 5
+
+# Player data: PLAYER steps keys gold diamonds name
+PLAYER 35 1 0 2 George
+
 # Format: Type Symbol Price N E S W bonusDiamonds bonusSteps bonusKeys  roomName
 START I 0 1 1 0 1 0 0 0 Entrance Hall
 FINISH A 0 0 1 1 1 0 0 0 Antechamber

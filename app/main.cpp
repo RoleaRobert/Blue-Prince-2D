@@ -21,7 +21,7 @@ private:
     int diamonds;
 
 public:
-    explicit Resources(int steps = 35, int keys = 1, int gold = 0, int diamonds = 2);
+    explicit Resources(int steps = 0, int keys = 0, int gold = 0, int diamonds = 0);
 
     int getSteps() const;
     int getKeys() const;
@@ -199,7 +199,7 @@ private:
     Resources res;
 
 public:
-    explicit Character(std::string name = "George", int line = 6, int column = 2);
+    explicit Character(std::string name = "", int line = 0, int column = 0, const Resources& res = Resources());
 
     int getLine() const;
     int getColumn() const;
@@ -211,8 +211,8 @@ public:
     friend std::ostream& operator<<(std::ostream& out, const Character& mc);
 };
 
-Character::Character(std::string name, int line, int colum)
-         : name(std::move(name)), line(line), column(colum), res() {}
+Character::Character(std::string name, int line, int colum, const Resources& res)
+         : name(std::move(name)), line(line), column(colum), res(res) {}
 
 int Character::getLine() const {return line;}
 int Character::getColumn() const {return column;}
@@ -256,7 +256,7 @@ private:
     bool move(Direction direction);
 
 public:
-    explicit Mansion(int lines = 7, int columns = 5);
+    Mansion();
 
     Mansion(const Mansion& other);
     Mansion& operator=(Mansion other);
@@ -297,6 +297,8 @@ void Mansion::initializeDeck() {
     }
 
     roomDeck.clear();
+    bool hasSize = false;
+    bool hasPlayer = false;
     bool hasStart = false;
     bool hasFinish = false;
 
@@ -308,12 +310,42 @@ void Mansion::initializeDeck() {
 
         std::istringstream iss(line);
         std::string type;
+
+        if (!(iss >> type)) {
+            continue;
+        }
+        if (type == "SIZE") {
+            int fileLines = 0;
+            int fileColumn = 0;
+            if (iss >> fileLines >> fileColumn && fileLines >= 3 && fileColumn >= 3) {
+                lines = fileLines;
+                columns = fileColumn;
+                hasSize = true;
+            }
+            continue;
+        }
+        if (type == "PLAYER") {
+            int playerSteps = 0;
+            int playerKeys = 0;
+            int playerGold = 0;
+            int playerDiamonds = 0;
+            if (iss >> playerSteps >> playerKeys >> playerGold >> playerDiamonds ) {
+                std::string playerName;
+                std::getline(iss >> std::ws, playerName);
+                if (!playerName.empty()) {
+                    player = Character(playerName, 0, 0, Resources(playerSteps, playerKeys, playerGold, playerDiamonds));
+                    hasPlayer = true;
+                }
+            }
+            continue;
+        }
+
         char symbol = ' ';
         int price = 0;
         int dirN = 0, dirE = 0, dirS = 0, dirW = 0;
         int bonusDiamonds = 0, bonusSteps = 0, bonusKeys = 0;
 
-        if (!(iss >> type >> symbol >> price >> dirN >> dirE >> dirS >> dirW >> bonusDiamonds >> bonusSteps >> bonusKeys)) {
+        if (!(iss >> symbol >> price >> dirN >> dirE >> dirS >> dirW >> bonusDiamonds >> bonusSteps >> bonusKeys)) {
             continue;
         }
 
@@ -335,7 +367,7 @@ void Mansion::initializeDeck() {
         }
     }
 
-    if (!hasStart || !hasFinish || roomDeck.empty()) {
+    if (!hasSize || !hasPlayer || !hasStart || !hasFinish || roomDeck.empty()) {
         throw std::runtime_error("File incomplete");
     }
 }
@@ -343,7 +375,7 @@ void Mansion::initializeDeck() {
 void Mansion::setupStartAndFinish() {
     const int startLine = lines - 1;
     const int startColumn = columns / 2;
-    player = Character("George", startLine, startColumn);
+    player.setPosition(startLine, startColumn);
 
     grid[startLine][startColumn] = startRoom;
     grid[startLine][startColumn].applyBonus(player.getResource());
@@ -355,15 +387,15 @@ void Mansion::setupStartAndFinish() {
     placed[endLine][endColumn] = true;
 }
 
-Mansion::Mansion(int lines, int columns)
-    :lines(lines),
-    columns(columns),
+Mansion::Mansion()
+    :lines(0),
+    columns(0),
     grid(nullptr),
     placed(nullptr),
-    player("George", lines - 1, columns / 2),
+    player(),
     rng(std::random_device{}()) {
-    memoryAllocation();
     initializeDeck();
+    memoryAllocation();
     setupStartAndFinish();
 }
 
@@ -559,7 +591,7 @@ std::ostream& operator<< (std::ostream& out, const Mansion& mansion) {
 
         for (int j = 0; j < mansion.columns; ++j) {
             if (!mansion.placed[i][j]) {
-                std::cout << "  .  ";
+                out << "  .  ";
             } else {
                 char left = mansion.grid[i][j].hasDoor(Direction::West) ? ' ' : '|';
                 char right = mansion.grid[i][j].hasDoor(Direction::East) ? ' ' : '|';
@@ -583,7 +615,7 @@ std::ostream& operator<< (std::ostream& out, const Mansion& mansion) {
 
 int main() {
 
-    Mansion mansion(7, 5);
+    Mansion mansion;
     mansion.run();
 
     return 0;
